@@ -75,4 +75,4 @@ async def fetch_docker_user_info(username):
     return docker_user
 
 # To call the exportable function from another script:
-# asyncio.run(fetch_docker_user_info("cgswong"))
+# asyncio.run(fetch_docker_user_info("Tarnadas")).display_user_info()    

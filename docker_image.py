@@ -35,7 +35,7 @@ class DockerTag:
 
 class DockerImage:
     def __init__(self, username, image_name):
-        self.username = username
+        self.username = username.lower()
         self.image_name = image_name
         self.tags = []
         self.seen_instuctions = set()
@@ -52,7 +52,7 @@ class DockerImage:
         params = "?page_size=25&page=1&ordering=last_updated"
         page_url = base_url + params
 
-        async with aiohttp.ClientSession() as session:
+        async with RandomProxySession() as session:
             while page_url:
                 data = await self.fetch_tags(session, page_url)
                 if not data:
