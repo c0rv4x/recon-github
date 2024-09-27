@@ -16,14 +16,17 @@ async def org_nicknames(org):
         total_pages = await get_total_pages(org,session)
         tasks = []
         
-        # Traverse all pages and collect nicknames
-        for page in range(1, total_pages + 1):
-            tasks.append(get_nicknames_from_page(org, session, page))
+        # # Traverse all pages and collect nicknames
+        # for page in range(1, total_pages + 1):
+        #     tasks.append(get_nicknames_from_page(org, session, page))
         
-        results = await asyncio.gather(*tasks)
-        # Flatten the list of nicknames from each page
-        all_nicknames = [nickname for result in results for nickname in result]
-        
+        # results = await asyncio.gather(*tasks)
+        # # Flatten the list of nicknames from each page
+        # all_nicknames = [nickname for result in results for nickname in result]
+
+        all_nicknames = []
+        all_nicknames.insert(0, org)
+
         return all_nicknames
 
 
@@ -54,7 +57,7 @@ async def get_nicknames_from_page(org, session, page_num):
     url = f"{BASE_URL}?page={page_num}".format(org)
     html = await fetch_html(session, url)
     soup = BeautifulSoup(html, 'html.parser')
-    nicknames = [org]
+    nicknames = []
     
     # Find all the anchor tags with the required attributes to get nicknames
     users = soup.find_all('a', {'class': 'd-inline-block', 'data-hovercard-type': 'user'})

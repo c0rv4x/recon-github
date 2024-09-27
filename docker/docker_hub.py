@@ -38,12 +38,12 @@ class DockerUser:
         self.docker_repositories = []
 
     async def fetch_html(self, session, url):
-        async with session.get(url) as response:
-            if response.status == 200:
-                return await response.text()
-            elif response.status != 404:
-                print(f"Weirds status code '{self.username}', {response.status}")
-            return None
+        response = await session.get(url)
+        if response.status == 200:
+            return await response.text()
+        elif response.status != 404:
+            print(f"Weirds status code '{self.username}', {response.status}")
+        return None
 
     async def fetch_user_info_and_repos(self, session):
         url = f"https://hub.docker.com/u/{self.username}"
@@ -65,10 +65,10 @@ class DockerUser:
                     self.docker_repositories = [repo['name'] for repo in repositories]
 
     async def fetch_json(self, session, url):
-        async with session.get(url) as response:
-            if response.status == 200:
-                return await response.json()
-            return None
+        response = await session.get(url)
+        if response.status == 200:
+            return await response.json()
+        return None
 
     async def fetch_user_info(self, session):
         url = f"https://hub.docker.com/v2/users/{self.username}"

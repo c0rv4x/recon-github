@@ -20,16 +20,16 @@ class DockerTag:
 
     async def fetch_tag_instructions(self, session, username, image_name, tag_name):
         url = f"https://hub.docker.com/v2/repositories/{username}/{image_name}/tags/{tag_name}/images"
-        async with session.get(url) as response:
-            if response.status == 200:
-                images_data = await response.json()
-                if images_data:
-                    for image_data in images_data:
-                        for layer in image_data.get('layers', []):
-                            if 'instruction' in layer:
-                                self.instructions.append(layer['instruction'].lstrip())
-            else:
-                print(f"Failed to fetch instructions for tag {tag_name} (status code: {response.status})")
+        response = await session.get(url)
+        if response.status == 200:
+            images_data = await response.json()
+            if images_data:
+                for image_data in images_data:
+                    for layer in image_data.get('layers', []):
+                        if 'instruction' in layer:
+                            self.instructions.append(layer['instruction'].lstrip())
+        else:
+            print(f"Failed to fetch instructions for tag {tag_name} (status code: {response.status})")
 
 
 class DockerImage:
@@ -40,11 +40,11 @@ class DockerImage:
         self.seen_instuctions = set()
 
     async def fetch_tags(self, session, page_url):
-        async with session.get(page_url) as response:
-            if response.status == 200:
-                return await response.json()
-            else:
-                return None
+        response = await session.get(page_url)
+        if response.status == 200:
+            return await response.json()
+        else:
+            return None
 
     async def fetch_all_tags(self):
         base_url = f"https://hub.docker.com/v2/repositories/{self.username}/{self.image_name}/tags"

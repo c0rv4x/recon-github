@@ -19,7 +19,6 @@ PROXIES = [
 
 class RandomProxySession:
     def __init__(self):
-        self.proxy_url, self.proxy_auth = self.get_random_proxy()
         self.session = None
 
     def get_random_proxy(self):
@@ -28,22 +27,28 @@ class RandomProxySession:
         ip, port, user, password = proxy.split(":")
         # Format the SOCKS5 proxy URL
         proxy_url = f"socks5://{user}:{password}@{ip}:{port}"
-        proxy_auth = BasicAuth(login=user, password=password)
-        return proxy_url, proxy_auth
+        return proxy_url
 
     async def __aenter__(self):
-        # Create a ProxyConnector with the selected SOCKS proxy
-        connector = ProxyConnector.from_url(self.proxy_url)
-        self.session = ClientSession(connector=connector)  # Create the session with the SOCKS proxy
+        # Initialize the session on enter
+        self.session = ClientSession()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.session.close()  # Close the session when exiting the block
 
+    async def _make_request(self, method, url, **kwargs):
+        # Select a random proxy for each request
+        proxy_url = self.get_random_proxy()
+        # Create a ProxyConnector with the selected SOCKS proxy
+        connector = ProxyConnector.from_url(proxy_url)
+        async with ClientSession(connector=connector) as session:
+            return await session.request(method, url, **kwargs)
+
     def get(self, url, **kwargs):
-        # Return an asynchronous context manager from the aiohttp session
-        return self.session.get(url, **kwargs)
+        # Call _make_request with the GET method
+        return self._make_request('GET', url, **kwargs)
 
     def post(self, url, **kwargs):
-        # Return an asynchronous context manager from the aiohttp session
-        return self.session.post(url, **kwargs)
+        # Call _make_request with the POST method
+        return self._make_request('POST', url, **kwargs)
