@@ -54,7 +54,7 @@ async def get_nicknames_from_page(org, session, page_num):
     url = f"{BASE_URL}?page={page_num}".format(org)
     html = await fetch_html(session, url)
     soup = BeautifulSoup(html, 'html.parser')
-    nicknames = []
+    nicknames = [org]
     
     # Find all the anchor tags with the required attributes to get nicknames
     users = soup.find_all('a', {'class': 'd-inline-block', 'data-hovercard-type': 'user'})

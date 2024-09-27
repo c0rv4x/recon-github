@@ -1,11 +1,10 @@
-import aiohttp
 import asyncio
 from termcolor import colored  # Import for colored text
 from pygments import highlight
 from pygments.lexers import DockerLexer
 from pygments.formatters import TerminalFormatter
 
-from proxy import RandomProxySession
+from utils.proxy import RandomProxySession
 
 
 class DockerTag:

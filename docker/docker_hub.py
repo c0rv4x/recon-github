@@ -1,9 +1,32 @@
 import re
 import json
-import aiohttp
 from bs4 import BeautifulSoup
 
-from proxy import RandomProxySession
+from docker.docker_image import fetch_docker_image_tags
+from utils.proxy import RandomProxySession
+
+
+async def process_docker_user(username):
+    # Fetch Docker user info and repositories for the given Docker user
+    docker_user = await fetch_docker_user_info(username)
+
+    if docker_user and docker_user.docker_repositories:
+        # For each Docker repository, fetch its tags and instructions
+        for repo in docker_user.docker_repositories:
+            print(f"\nFetching Docker tags and instructions for {username}/{repo}")
+            docker_image = await fetch_docker_image_tags(username, repo)
+            docker_image.display_tags()
+
+
+async def fetch_docker_user_info(username):
+    docker_user = DockerUser(username)
+
+    async with RandomProxySession() as session:
+        await docker_user.fetch_user_info_and_repos(session)
+        if docker_user.docker_repositories:
+            await docker_user.fetch_user_info(session)
+            
+    return docker_user
 
 
 class DockerUser:
@@ -62,17 +85,3 @@ class DockerUser:
             info += f"\nType: {self.user_type}"
         info += f"\nDocker Repositories: {', '.join(self.docker_repositories) if self.docker_repositories else 'None'}"
         print(info)
-
-
-async def fetch_docker_user_info(username):
-    docker_user = DockerUser(username)
-
-    async with RandomProxySession() as session:
-        await docker_user.fetch_user_info_and_repos(session)
-        if docker_user.docker_repositories:
-            await docker_user.fetch_user_info(session)
-            
-    return docker_user
-
-# To call the exportable function from another script:
-# asyncio.run(fetch_docker_user_info("Tarnadas")).display_user_info()    

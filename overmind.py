@@ -2,24 +2,16 @@ import sys
 import asyncio
 import argparse
 
-from github_users import org_nicknames
-from docker_hub import fetch_docker_user_info
-from docker_image import fetch_docker_image_tags
+from github.github_users import org_nicknames
+from docker.docker_hub import process_docker_user
+from users.snov import fetch_company_emails
 
 
-async def process_docker_user(username):
-    # Fetch Docker user info and repositories for the given Docker user
-    docker_user = await fetch_docker_user_info(username)
+async def run(fetch_from_github=None, org_name=None, docker_usernames=None, fetch_emails_domain=None):
+    if fetch_emails_domain:
+        await fetch_company_emails(fetch_emails_domain)
+        return
 
-    if docker_user and docker_user.docker_repositories:
-        # For each Docker repository, fetch its tags and instructions
-        for repo in docker_user.docker_repositories:
-            print(f"\nFetching Docker tags and instructions for {username}/{repo}")
-            docker_image = await fetch_docker_image_tags(username, repo)
-            docker_image.display_tags()
-
-
-async def run(fetch_from_github, org_name=None, docker_usernames=None):
     target_users = []
 
     # Step 1: Either fetch GitHub usernames from the organization or use provided Docker usernames
@@ -39,19 +31,22 @@ async def run(fetch_from_github, org_name=None, docker_usernames=None):
 
 def main():
     # Set up argument parsing
-    parser = argparse.ArgumentParser(description="Fetch Docker info for GitHub org or specific Docker users.")
+    parser = argparse.ArgumentParser(description="Fetch Docker info for GitHub org, specific Docker users, or emails.")
     parser.add_argument("--github-org", help="GitHub organization to fetch users from")
-    parser.add_argument("--docker-users", nargs="*", help="List of Docker Hub usernames to process")
-    
+    parser.add_argument("--docker-users", nargs="*", help="Docker users whose layers should be found")
+    parser.add_argument("--fetch-emails", metavar="DOMAIN", help="Get a list of emails by company domain")
+
     args = parser.parse_args()
 
-    # Determine the mode of operation (GitHub org or Docker usernames)
-    if args.github_org:
+    # Determine the mode of operation
+    if args.fetch_emails:
+        asyncio.run(run(fetch_emails_domain=args.fetch_emails))
+    elif args.github_org:
         asyncio.run(run(fetch_from_github=True, org_name=args.github_org))
     elif args.docker_users:
         asyncio.run(run(fetch_from_github=False, docker_usernames=args.docker_users))
     else:
-        print("You must provide either --github-org or --docker-users.")
+        print("You must provide either --github-org, --docker-users, or --fetch-emails.")
         sys.exit(1)
 
 

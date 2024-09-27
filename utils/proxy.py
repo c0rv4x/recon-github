@@ -47,17 +47,3 @@ class RandomProxySession:
     def post(self, url, **kwargs):
         # Return an asynchronous context manager from the aiohttp session
         return self.session.post(url, **kwargs)
-
-
-# async def fetch_ip():
-#     async with RandomProxySession() as session:
-#         async with session.get("https://ifconfig.co/json") as response:
-#             if response.status == 200:
-#                 data = await response.json()
-#                 print(f"Your IP Address: {data['ip']}")
-#             else:
-#                 print(f"Failed to fetch IP. Status code: {response.status}")
-
-
-# # Run the function
-# asyncio.run(fetch_ip())
