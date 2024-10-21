@@ -7,6 +7,14 @@ from pygments.formatters import TerminalFormatter
 from utils.proxy import RandomProxySession
 
 
+# Exportable function to fetch tags and their instructions for a given image
+async def fetch_docker_image_tags(username, image_name):
+    docker_image = DockerImage(username, image_name)
+    await docker_image.fetch_all_tags()
+
+    return docker_image
+
+
 class DockerTag:
     def __init__(self, name, last_updater_username):
         self.name = name
@@ -46,30 +54,39 @@ class DockerImage:
         else:
             return None
 
+    async def fetch_tag_instructions_concurrent(self, tag_info, session, semaphore):
+        async with semaphore:
+            tag = DockerTag(
+                name=tag_info['name'],
+                last_updater_username=tag_info['last_updater_username']
+            )
+            await tag.fetch_tag_instructions(session, self.username, self.image_name, tag.name)
+            concatted_instructions = '\n'.join(tag.instructions)
+            if concatted_instructions not in self.seen_instuctions:
+                self.seen_instuctions.add(concatted_instructions)
+                self.tags.append(tag)
+
     async def fetch_all_tags(self):
         base_url = f"https://hub.docker.com/v2/repositories/{self.username}/{self.image_name}/tags"
         params = "?page_size=25&page=1&ordering=last_updated"
         page_url = base_url + params
 
         async with RandomProxySession() as session:
+            semaphore = asyncio.Semaphore(5)  # Limit concurrency to 5 tasks at a time
             while page_url:
                 data = await self.fetch_tags(session, page_url)
                 if not data:
                     print(f"Failed to fetch data for {self.username}/{self.image_name}")
                     break
 
-                # Parse the tags from the response
+                tasks = []
+                # Parse the tags from the response and create tasks for each tag
                 for tag_info in data['results']:
-                    tag = DockerTag(
-                        name=tag_info['name'],
-                        last_updater_username=tag_info['last_updater_username']
-                    )
-                    # Fetch instructions for each tag
-                    await tag.fetch_tag_instructions(session, self.username, self.image_name, tag.name)
-                    concatted_instructions = '\n'.join(tag.instructions)
-                    if concatted_instructions not in self.seen_instuctions:
-                        self.seen_instuctions.add(concatted_instructions)
-                        self.tags.append(tag)
+                    task = self.fetch_tag_instructions_concurrent(tag_info, session, semaphore)
+                    tasks.append(task)
+
+                # Run the tasks in parallel, with the semaphore controlling concurrency
+                await asyncio.gather(*tasks)
 
                 # Move to the next page if available
                 page_url = data.get('next')
@@ -77,20 +94,3 @@ class DockerImage:
     def display_tags(self):
         for tag in self.tags:
             print(f"[{colored(self.username, 'yellow')}/{self.image_name}] {tag}")
-
-
-# Exportable function to fetch tags and their instructions for a given image
-async def fetch_docker_image_tags(username, image_name):
-    docker_image = DockerImage(username, image_name)
-    await docker_image.fetch_all_tags()
-
-    return docker_image
-
-
-# Example usage:
-if __name__ == "__main__":
-    username = "apache"
-    image_name = "solr-nightly"
-
-    # Run the asyncio event loop to fetch the tags and instructions
-    asyncio.run(fetch_docker_image_tags(username, image_name))
