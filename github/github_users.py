@@ -16,16 +16,15 @@ async def org_nicknames(org):
         total_pages = await get_total_pages(org,session)
         tasks = []
         
-        # # Traverse all pages and collect nicknames
-        # for page in range(1, total_pages + 1):
-        #     tasks.append(get_nicknames_from_page(org, session, page))
+        # Traverse all pages and collect nicknames
+        for page in range(1, total_pages + 1):
+            tasks.append(get_nicknames_from_page(org, session, page))
         
-        # results = await asyncio.gather(*tasks)
-        # # Flatten the list of nicknames from each page
-        # all_nicknames = [nickname for result in results for nickname in result]
+        results = await asyncio.gather(*tasks)
 
         all_nicknames = []
         all_nicknames.insert(0, org)
+        all_nicknames += [nickname for result in results for nickname in result]
 
         return all_nicknames
 

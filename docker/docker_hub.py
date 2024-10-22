@@ -1,21 +1,21 @@
 import re
 import json
+import asyncio
 from bs4 import BeautifulSoup
-
-from docker.docker_image import fetch_docker_image_tags
 from utils.proxy import RandomProxySession
+
+from docker.docker_image import process_docker_image
 
 
 async def process_docker_user(username):
-    # Fetch Docker user info and repositories for the given Docker user
     docker_user = await fetch_docker_user_info(username)
 
     if docker_user and docker_user.docker_repositories:
-        # For each Docker repository, fetch its tags and instructions
+        tasks = []
         for repo in docker_user.docker_repositories:
-            print(f"\nFetching Docker tags and instructions for {username}/{repo}")
-            docker_image = await fetch_docker_image_tags(username, repo)
-            docker_image.display_tags()
+            tasks.append(process_docker_image(username, repo))
+        
+        results = await asyncio.gather(*tasks)
 
 
 async def fetch_docker_user_info(username):
@@ -42,7 +42,7 @@ class DockerUser:
         if response.status == 200:
             return await response.text()
         elif response.status != 404:
-            print(f"Weirds status code '{self.username}', {response.status}")
+            print(f"Weird status code for '{self.username}', {response.status}")
         return None
 
     async def fetch_user_info_and_repos(self, session):
