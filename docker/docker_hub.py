@@ -7,16 +7,18 @@ from utils.proxy import RandomProxySession
 from docker.docker_image import process_docker_image
 
 
+PARALLEL_USERS = 3
+users_semaphore = asyncio.Semaphore(PARALLEL_USERS)
+
 async def process_docker_user(username):
-    docker_user = await fetch_docker_user_info(username)
+    async with users_semaphore:
+        docker_user = await fetch_docker_user_info(username)
 
-    if docker_user and docker_user.docker_repositories:
-        tasks = []
-        for repo in docker_user.docker_repositories:
-            tasks.append(process_docker_image(username, repo))
-        
-        results = await asyncio.gather(*tasks)
-
+        if docker_user and docker_user.docker_repositories:
+            tasks = []
+            for repo in docker_user.docker_repositories:
+                await process_docker_image(username, repo)
+            
 
 async def fetch_docker_user_info(username):
     docker_user = DockerUser(username)
